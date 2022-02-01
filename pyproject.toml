@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=42.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+minversion = "6.2.5"
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning:numpy.*:"]
+
+[tool.mypy]
+files = ["src/rotins", "tests"]
+warn_unused_ignores = true
+show_error_codes = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["rotins.*"]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
