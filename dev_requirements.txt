@@ -26,5 +26,6 @@ PyYAML==6.0
 six==1.16.0
 toml==0.10.2
 tomli==2.0.0
+tox==3.24.5
 typing_extensions==4.0.1
 virtualenv==20.13.0
