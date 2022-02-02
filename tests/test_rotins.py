@@ -153,7 +153,7 @@ def test_broad(wl, fwhm, scale, kernel_type, kernel_args, makeplots):
         plt.clf()
         plt.plot(x, y, "b", label="Input", lw=0.5)
         plt.plot(
-            kx + wl, 1 - core.normalize_kernel(kx, ky), "g", label="Kernel", lw=0.5
+            kx + wl, 1 - ky, "g", label="Kernel", lw=0.5
         )
         plt.plot(rx, ry, "r", label="Convolved", lw=0.5)
         plt.legend()

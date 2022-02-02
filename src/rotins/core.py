@@ -36,13 +36,6 @@ def interpolate_spec(
     return inter_f(basis)
 
 
-def normalize_kernel(
-    basis: npt.NDArray[np.floating], kernel: npt.NDArray[np.floating]
-) -> npt.NDArray[np.floating]:
-    step = (basis[-1] - basis[0]) / (len(basis) - 1)
-    return kernel * step
-
-
 def convolve(
     spec: npt.NDArray[np.floating],
     kernel: npt.NDArray[np.floating],
@@ -103,6 +96,7 @@ class Kernel(ABC):
             limit = self.get_default_limits(wl_mid)
         basis = get_basis(step, limit)
         kernel = self.prof(wl_mid)(basis)
+        kernel /= np.sum(kernel)
         return basis, kernel
 
 
@@ -207,9 +201,8 @@ class Broadening:
             wl_lin = linspace_stepped(lim[0], lim[1], step)
         spec_lin = interpolate_spec(wl, spec, wl_lin)
         for k in self.kernels:
-            basis, kernel = k.kernel(wl_mid, step)
-            nkernel = normalize_kernel(basis, kernel)
-            spec_lin = convolve(spec_lin, nkernel)
+            _, kernel = k.kernel(wl_mid, step)
+            spec_lin = convolve(spec_lin, kernel)
 
         spec_lin = 1 - spec_lin
         return wl_lin, spec_lin
