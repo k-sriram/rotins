@@ -3,16 +3,10 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Callable, Literal
 
-try:
-    from typing import TypeAlias
-except ImportError:
-    from typing_extensions import TypeAlias
-
 import numpy as np
 import numpy.typing as npt
 from scipy.interpolate import interp1d
 
-FloatArray: TypeAlias = npt.NDArray[np.float64]
 
 DEFAULT_LIMB_COEFF = 0.6
 SPEED_LIGHT_KMS = 2.99792e5
@@ -20,43 +14,47 @@ CHARD = 0.01
 EPSILON = 1e-6
 
 
-def get_basis(step: float, limit: float) -> FloatArray:
+def get_basis(step: float, limit: float) -> npt.NDArray[np.floating]:
     numsteps = int(np.ceil(limit / step))
     basis = np.array([step * i for i in range(-numsteps, numsteps + 1)])
     return basis
 
 
-def linspace_stepped(start: float, stop: float, step: float) -> FloatArray:
+def linspace_stepped(
+    start: float, stop: float, step: float
+) -> npt.NDArray[np.floating]:
     numsteps = int(np.floor((stop - start) / step)) + 1
     return np.array([start + step * i for i in range(numsteps)])
 
 
 def interpolate_spec(
-    wl: FloatArray,
-    spec: FloatArray,
-    basis: FloatArray,
-) -> FloatArray:
+    wl: npt.NDArray[np.floating],
+    spec: npt.NDArray[np.floating],
+    basis: npt.NDArray[np.floating],
+) -> npt.NDArray[np.floating]:
     inter_f = interp1d(wl, spec, "cubic", assume_sorted=True)
     return inter_f(basis)
 
 
-def normalize_kernel(basis: FloatArray, kernel: FloatArray) -> FloatArray:
+def normalize_kernel(
+    basis: npt.NDArray[np.floating], kernel: npt.NDArray[np.floating]
+) -> npt.NDArray[np.floating]:
     step = (basis[-1] - basis[0]) / (len(basis) - 1)
     return kernel * step
 
 
 def convolve(
-    spec: FloatArray,
-    kernel: FloatArray,
-) -> FloatArray:
+    spec: npt.NDArray[np.floating],
+    kernel: npt.NDArray[np.floating],
+) -> npt.NDArray[np.floating]:
     return np.convolve(spec, kernel, "same")
 
 
 def get_section(
-    x: FloatArray,
-    y: FloatArray,
+    x: npt.NDArray[np.floating],
+    y: npt.NDArray[np.floating],
     lim: tuple[float, float] = None,
-) -> tuple[FloatArray, FloatArray]:
+) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
     # Sort if not sorted
     if not np.all(x[:-1] <= x[1:]):
         xinds = x.argsort()
@@ -80,7 +78,9 @@ def get_section(
 
 class Kernel(ABC):
     @abstractmethod
-    def prof(self, wl_mid: float) -> Callable[[FloatArray], FloatArray]:
+    def prof(
+        self, wl_mid: float
+    ) -> Callable[[npt.NDArray[np.floating]], npt.NDArray[np.floating]]:
         pass
 
     @abstractmethod
@@ -93,7 +93,7 @@ class Kernel(ABC):
 
     def kernel(
         self, wl_mid: float, step: float = None, limit: float = None
-    ) -> tuple[FloatArray, FloatArray]:
+    ) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         if step is None:
             step = self.step(wl_mid)
         if limit is None:
@@ -121,15 +121,17 @@ class RotKernel(Kernel):
     def step(self, wl_mid: float) -> float:
         return self._get_dl0(wl_mid) / 5
 
-    def prof(self, wl_mid: float) -> Callable[[FloatArray], FloatArray]:
+    def prof(
+        self, wl_mid: float
+    ) -> Callable[[npt.NDArray[np.floating]], npt.NDArray[np.floating]]:
         dl0 = self._get_dl0(wl_mid)
         c_1 = 2 * (1 - self.limb_coeff)
         c_2 = np.pi * self.limb_coeff / 2
         den = np.pi * dl0 * (1 - self.limb_coeff / 3)
 
         def prof_func(
-            x: FloatArray,
-        ) -> FloatArray:
+            x: npt.NDArray[np.floating],
+        ) -> npt.NDArray[np.floating]:
             x_1 = 1 - np.square(x / dl0)
             z = np.zeros(len(x_1))
             x_1 = np.maximum(x_1, z)
@@ -160,14 +162,16 @@ class InsKernel(Kernel):
     def step(self, wl_mid: float) -> float:
         return self.get_fwhm(wl_mid) / 10.0
 
-    def prof(self, wl_mid: float) -> Callable[[FloatArray], FloatArray]:
+    def prof(
+        self, wl_mid: float
+    ) -> Callable[[npt.NDArray[np.floating]], npt.NDArray[np.floating]]:
         fwhm = self.get_fwhm(wl_mid)
         dli = fwhm / (2 * np.log(2))
         c1 = 1 / (np.sqrt(np.pi) * dli)
 
         def prof_func(
-            x: FloatArray,
-        ) -> FloatArray:
+            x: npt.NDArray[np.floating],
+        ) -> npt.NDArray[np.floating]:
             return c1 * np.exp(-np.square(x / dli))
 
         return prof_func
@@ -179,10 +183,10 @@ class Broadening:
 
     def broaden(
         self,
-        wl: FloatArray,
-        spec: FloatArray,
+        wl: npt.NDArray[np.floating],
+        spec: npt.NDArray[np.floating],
         lim: tuple[float, float] = None,
-    ) -> tuple[FloatArray, FloatArray]:
+    ) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         wl, spec = get_section(wl, spec, lim)
 
         spec = 1 - spec

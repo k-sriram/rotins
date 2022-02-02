@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 import scipy.stats
 from scipy.integrate import trapz
@@ -20,7 +21,7 @@ FloatArray = core.FloatArray
 # utils
 
 
-def measure_fwhm(x: FloatArray, y: FloatArray) -> float:
+def measure_fwhm(x: npt.NDArray[np.floating], y: npt.NDArray[np.floating]) -> float:
     amax = np.argmax(y)
 
     xmax = x[amax]
@@ -37,7 +38,9 @@ def measure_fwhm(x: FloatArray, y: FloatArray) -> float:
     return rhm.root - lhm.root
 
 
-def gaussian(mean: float = 0.0, std: float = 1.0, size: int = SAMPLE_SIZE):
+def gaussian(
+    mean: float = 0.0, std: float = 1.0, size: int = SAMPLE_SIZE
+) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
     x = np.linspace(-10.0, 10.0, size)
     y = scipy.stats.norm(mean, std).pdf(x)
     return x, y
