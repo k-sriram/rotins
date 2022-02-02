@@ -7,7 +7,6 @@ import numpy as np
 import numpy.typing as npt
 from scipy.interpolate import interp1d
 
-
 DEFAULT_LIMB_COEFF = 0.6
 SPEED_LIGHT_KMS = 2.99792e5
 CHARD = 0.01
@@ -154,16 +153,21 @@ class InsKernel(Kernel):
             return wl_mid / self.res
 
     def get_default_limits(self, wl_mid: float) -> float:
-        return self.get_fwhm(wl_mid) / (2 * np.log(2)) * 4
+        return self.get_dli(self.get_fwhm(wl_mid)) * 4
 
     def step(self, wl_mid: float) -> float:
         return self.get_fwhm(wl_mid) / 10.0
+
+    # Δλᵢ = σ√2
+    @staticmethod
+    def get_dli(fwhm: float) -> float:
+        return fwhm / (2 * np.sqrt(np.log(2)))
 
     def prof(
         self, wl_mid: float
     ) -> Callable[[npt.NDArray[np.floating]], npt.NDArray[np.floating]]:
         fwhm = self.get_fwhm(wl_mid)
-        dli = fwhm / (2 * np.log(2))
+        dli = self.get_dli(fwhm)
         c1 = 1 / (np.sqrt(np.pi) * dli)
 
         def prof_func(
