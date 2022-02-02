@@ -151,17 +151,46 @@ def test_broad(wl, fwhm, scale, kernel_type, kernel_args, makeplots):
     rx, ry = Ins.broaden(x, y)
 
     rfwhm = measure_fwhm(rx, 1 - ry)
-    print(f"{ifwhm=:.3f}, {kfwhm=:.3f}, {efwhm=:.3f}, {rfwhm=:.3f}")
+
+    if kernel_type is core.InsKernel:
+        if kernel_args[1] == "fwhm":
+            tkfwhm = kernel_args[0]
+        else:
+            tkfwhm = wl / kernel_args[0]
+        print(
+            f"\nFWHM: input={ifwhm:.3f}, kernel={kfwhm=:.3f},\
+ theor kernel={tkfwhm:.3f} exp: {efwhm=:.3f}, res: {rfwhm=:.3f}"
+        )
+    else:
+        print(
+            f"\nFWHM: input={ifwhm:.3f}, kernel={kfwhm=:.3f}, exp: {efwhm=:.3f},\
+ res: {rfwhm=:.3f}"
+        )
 
     if makeplots:
         import matplotlib.pyplot as plt
 
         plt.clf()
-        plt.plot(x, y, "b", label="Input", lw=0.5)
-        plt.plot(
-            kx + wl, 1 - ky, "g", label="Kernel", lw=0.5
-        )
-        plt.plot(rx, ry, "r", label="Convolved", lw=0.5)
+        plt.plot(x, y, "k", label="Input", lw=0.5)
+
+        if kernel_type is core.InsKernel:
+            if kernel_args[1] == "fwhm":
+                tkfwhm = kernel_args[0]
+            else:
+                tkfwhm = wl / kernel_args[0]
+            std = tkfwhm / 2 / np.sqrt(2 * np.log(2))
+            tkx, tky = gaussian(wl, std, size=len(kx), width=kx[-1] - kx[0])
+            tky *= (tkx[-1] - tkx[0]) / (len(tkx) - 1)
+            plt.plot(
+                tkx,
+                1 - tky,
+                "r",
+                lw=0.5,
+                label="Theoretical Kernel",
+            )
+        plt.plot(kx + wl, 1 - ky, "g", label="Kernel", lw=0.5)
+
+        plt.plot(rx, ry, "b", label="Convolved", lw=0.5)
         plt.legend()
         plt.xlim([wl - rfwhm * 2, wl + rfwhm * 2])
         plt.title(f"{ifwhm=:.3f}, {kfwhm=:.3f}, {efwhm=:.3f}, {rfwhm=:.3f}")
@@ -170,6 +199,7 @@ def test_broad(wl, fwhm, scale, kernel_type, kernel_args, makeplots):
 
     if kernel_type == core.InsKernel:
         assert abs(efwhm - rfwhm) < EPSILON
+        assert abs(tkfwhm - kfwhm) < EPSILON
 
     ieqw = trapz(1 - y, x)
     reqw = trapz(1 - ry, rx)
