@@ -122,6 +122,7 @@ def test_kernel(kernel, args):
     assert ky[0] < EPSILON
     assert ky[-1] < EPSILON
     assert trapz(ky, kx) - 1 < EPSILON
+    assert abs(sum(ky) - 1) < EPSILON
 
 
 # Integration tests
