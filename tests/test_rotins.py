@@ -14,8 +14,7 @@ import rotins.core as core
 
 EPSILON = 1e-6
 WL_MID = 4000.0
-SAMPLE_SIZE = 601
-FloatArray = core.FloatArray
+SAMPLE_SIZE = 2001
 
 
 # utils
@@ -39,16 +38,21 @@ def measure_fwhm(x: npt.NDArray[np.floating], y: npt.NDArray[np.floating]) -> fl
 
 
 def gaussian(
-    mean: float = 0.0, std: float = 1.0, size: int = SAMPLE_SIZE
+    mean: float = 0.0, std: float = 1.0, size: int = SAMPLE_SIZE, width: float = 20.0
 ) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
-    x = np.linspace(-10.0, 10.0, size)
+    x = np.linspace(-width / 2, width / 2, size) + mean
     y = scipy.stats.norm(mean, std).pdf(x)
     return x, y
 
 
-def sample_spectrum(wl=WL_MID, fwhm=1.0, scale=1.0):
+def sample_spectrum(
+    wl: float = WL_MID, fwhm: float = 1.0, scale: float = 1.0, width: float = 20.0
+) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
     std = fwhm / 2 / np.sqrt(2 * np.log(2))
-    x, y = gaussian(0.0, std)
+    size = max(int(np.ceil(3 * width / fwhm)), SAMPLE_SIZE)
+    if size % 2 == 0:
+        size += 1
+    x, y = gaussian(0.0, std, size, width)
     x = x + wl
     y = 1 - (y * scale)
     return x, y
