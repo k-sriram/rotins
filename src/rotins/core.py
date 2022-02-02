@@ -47,7 +47,10 @@ def convolve(
     spec: npt.NDArray[np.floating],
     kernel: npt.NDArray[np.floating],
 ) -> npt.NDArray[np.floating]:
-    return np.convolve(spec, kernel, "same")
+    kw = len(kernel)
+    spec = np.pad(spec, (kw, kw), "edge")
+    conv = np.convolve(spec, kernel, "same")
+    return conv[kw:-kw]
 
 
 def get_section(
