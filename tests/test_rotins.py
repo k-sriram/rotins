@@ -78,7 +78,7 @@ def test_measure_fwhm():
     x, y = gaussian()
     fwhm = measure_fwhm(x, y)
     expected = 2 * np.sqrt(2 * np.log(2))
-    assert abs((fwhm / expected) - 1) < 1e-6
+    assert abs((fwhm / expected) - 1) < EPSILON
 
 
 @pytest.mark.parametrize(
@@ -137,7 +137,8 @@ def test_kernel(kernel, args):
     ],
 )
 def test_broad(wl, fwhm, scale, kernel_type, kernel_args, makeplots):
-    x, y = sample_spectrum(wl, fwhm, scale)
+    sample_width = 10.0
+    x, y = sample_spectrum(wl, fwhm, scale, sample_width)
     ifwhm = measure_fwhm(x, 1 - y)
 
     kernel: core.Kernel = kernel_type(*kernel_args)
@@ -168,13 +169,13 @@ def test_broad(wl, fwhm, scale, kernel_type, kernel_args, makeplots):
         plt.savefig(f"tests/figure_{kernel_type_str}_{fwhm}.png")
 
     if kernel_type == core.InsKernel:
-        assert abs(efwhm - rfwhm) < 1e-3
+        assert abs(efwhm - rfwhm) < EPSILON
 
     ieqw = trapz(1 - y, x)
     reqw = trapz(1 - ry, rx)
 
     print(f"{ieqw*1000=:.2f}, {reqw*1000=:.2f}")
-    assert abs(ieqw - reqw) < 1e-4
+    assert abs(ieqw - reqw) / sample_width < EPSILON
 
 
 @pytest.mark.parametrize("testcase", ["1", "2"])
