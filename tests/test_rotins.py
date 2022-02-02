@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 import scipy.stats
@@ -165,3 +167,61 @@ def test_broad(wl, fwhm, scale, kernel_type, kernel_args, makeplots):
 
     print(f"{ieqw*1000=:.2f}, {reqw*1000=:.2f}")
     assert abs(ieqw - reqw) < 1e-4
+
+
+@pytest.mark.parametrize("testcase", ["1", "2"])
+@pytest.mark.parametrize(
+    "outfile, fwhm, vsini",
+    [
+        ("fwhm01", 0.1, 0.0),
+        ("fwhm05", 0.5, 0.0),
+        ("fwhm2", 2.0, 0.0),
+        ("vrot10", 0.0, 10.0),
+        ("vrot50", 0.0, 50.0),
+        ("vrot200", 0.0, 200.0),
+        ("vrot25fwhm02", 0.2, 25.0),
+    ],
+)
+def test_rotins(outfile, fwhm, vsini, makeplots, testcase):
+    TESTDATA = Path(__file__).parent / "data"
+    SPEC = f"t{testcase}_norm"
+    outfile = f"t{testcase}_{outfile}"
+    wl, flux = np.loadtxt(TESTDATA / SPEC, unpack=True)
+
+    cwl, cflux = core.RotIns(vsini, fwhm).broaden(wl, flux)
+    ewl, eflux = np.loadtxt(TESTDATA / outfile, unpack=True)
+
+    lim = (max(ewl[0], cwl[0]), min(ewl[-1], cwl[-1]))
+    eflux = 1 - eflux
+    cflux = 1 - cflux
+    n = max(len(ewl), len(cwl))
+    x = np.linspace(lim[0], lim[1], n)
+
+    cflux = interp1d(cwl, cflux, kind="cubic")(x)
+    eflux = interp1d(ewl, eflux, kind="cubic")(x)
+
+    stdev = np.sqrt(np.square(eflux - cflux).sum())
+    stdev /= n
+
+    if makeplots:
+        import matplotlib.pyplot as plt
+
+        plt.clf()
+        plt.plot(wl, flux, "k", label="Input", lw=0.5)
+        plt.plot(x, 1 - eflux, "g", label="Expected", lw=0.5)
+        plt.plot(x, 1 - cflux, "r", label="Convolved", lw=0.5)
+        plt.legend()
+        plt.xlim(lim)
+        plt.title(f"{fwhm=:.2f}, {vsini=:.1f}, {stdev=:.3f}")
+        plt.savefig(f"tests/rotins_{outfile}.png")
+
+    if vsini == 0.0:
+        ifwhm = measure_fwhm(wl, 1 - flux)
+        efwhm = measure_fwhm(x, eflux)
+        cfwhm = measure_fwhm(x, cflux)
+        tfwhm = np.sqrt(np.square([ifwhm, fwhm]).sum())
+        print(f"\n{ifwhm=:.3f}, {cfwhm=:.3f} {fwhm=:.3f}, {efwhm=:.3f}, {tfwhm=:.3f}")
+        # input, convolved, kernel, expected, theoretical
+        assert abs(cfwhm - efwhm) / efwhm < 1e-3
+
+    assert stdev < 1e-4
