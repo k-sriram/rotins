@@ -89,7 +89,7 @@ def test_measure_fwhm():
     ],
 )
 def test_get_basis(step, limit):
-    basis = core.get_basis(step, limit)
+    basis = core._get_basis(step, limit)
     assert np.all(np.diff(basis) - step < EPSILON)
     assert -limit - step < basis[0] <= -limit
     assert limit <= basis[-1] < limit + step
@@ -103,7 +103,7 @@ def test_get_basis(step, limit):
     ],
 )
 def test_linspace_stepped(start, stop, step):
-    linspace = core.linspace_stepped(start, stop, step)
+    linspace = core._linspace_stepped(start, stop, step)
     assert linspace[0] == start
     assert linspace[-1] <= stop
     assert linspace[-1] > stop - step
@@ -125,7 +125,7 @@ def test_kernel(kernel, args):
     assert abs(sum(ky) - 1) < EPSILON
 
 
-# Integration tests
+# Behaviour tests
 
 
 @pytest.mark.parametrize(

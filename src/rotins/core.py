@@ -1,3 +1,82 @@
+# rotins.py
+# A module to perform rotational and instrumental broadening of synthetic
+# stellar spectra. This is written as a python translation of the FORTRAN
+# program used in TLUSTY by Ivan Hubeny et al.
+# Author: Sriram Krishna
+# Created: 2022-01-28
+
+# MIT License
+
+# Copyright (c) 2022 Sriram Krishna
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so.
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+
+r"""
+rotins
+======
+
+This module provides functions to perform rotional and instrumental
+broadening on spectra. The main functionality is provided by the class RotIns.
+If you have a spectrum in the form of a wavelength array and a flux array,
+you can use the class to perform rotaional and/or instrumental broadening.
+
+Example
+-------
+    Following is the most straightforward example of how to use this module.
+
+        conv_wl, conv_spec = RotIns(vsini, fwhm).broaden(wl, spec)
+
+Notes
+-----
+    The input spectra need not have uniform spacing. This module will first
+    cast the input spectra into a uniform grid with an appropriate step size.
+
+    If either of vsini or fwhm is given as `None`, the corresponding broadening
+    will be skipped.
+
+    The calculations are done according to the book:
+    Gray, D.F., 2008, The Observation and Analysis of Stellar Photospheres,
+    Cambridge University Press, Cambridge, 3rd edition.
+
+    The formula for the convolutions are:
+
+    For rotational broadening the kernel is:
+    .. math::
+    G(\Delta\lambda) = \frac{2(1-\epsilon)\[1-(\Delta\lambda/\Delta\lambda_0)^2\]^{1/2}+(\pi\epsilon/2)\[1-(\Delta\lambda/\Delta\lambda_0)^2\]}{\pi\Delta\lambda_0(1-\epsilon/3)}
+    where,
+    .. math::
+    \Delta\lambda_0 = \frac{\lambda v \sin i}{c}
+
+    For instrumental broadening the kernel is a Gaussian with standard
+    deviation given by the FWHM.
+    .. math::
+    \sigma = \frac{\textrm{FWHM}}{2\sqrt{2\ln 2}}
+
+Attributes
+----------
+    char_step : float = 0.01
+        Minimum characteristic step size for the convolution kernels.
+        The default value is good for optical spectra when described in
+        Angstrom.
+"""  # noqa: E501
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -7,53 +86,88 @@ import numpy as np
 import numpy.typing as npt
 from scipy.interpolate import interp1d
 
+# dunders
+
+__version__ = "1.0.0rc1"
+__all__ = ["convolve", "Kernel", "RotKernel", "InsKernel", "Broadening", "RotIns"]
+
+# Constants
+
 DEFAULT_LIMB_COEFF = 0.6
 SPEED_LIGHT_KMS = 2.99792e5
-CHARD = 0.01
 EPSILON = 1e-6
 
 
-def get_basis(step: float, limit: float) -> npt.NDArray[np.floating]:
-    numsteps = int(np.ceil(limit / step))
-    basis = np.array([step * i for i in range(-numsteps, numsteps + 1)])
-    return basis
+# Module level variables
+
+char_step = 0.01
 
 
-def linspace_stepped(
-    start: float, stop: float, step: float
-) -> npt.NDArray[np.floating]:
-    numsteps = int(np.floor((stop - start) / step)) + 1
-    return np.array([start + step * i for i in range(numsteps)])
-
-
-def interpolate_spec(
-    wl: npt.NDArray[np.floating],
-    spec: npt.NDArray[np.floating],
-    basis: npt.NDArray[np.floating],
-) -> npt.NDArray[np.floating]:
-    inter_f = interp1d(wl, spec, "cubic", assume_sorted=True)
-    return inter_f(basis)
+# Utility functions
 
 
 def convolve(
     spec: npt.NDArray[np.floating],
     kernel: npt.NDArray[np.floating],
 ) -> npt.NDArray[np.floating]:
+    """Convolves the spectrum with the kernel.
+
+    Pads the spectrum with edge values before convolution.
+    """
     kw = len(kernel)
     spec = np.pad(spec, (kw, kw), "edge")
     conv = np.convolve(spec, kernel, "same")
     return conv[kw:-kw]
 
 
-def get_section(
+def _get_basis(step: float, limit: float) -> npt.NDArray[np.floating]:
+    """Generates a basis array for the convolution kernel.
+
+    The generated array is symmetric about the y-axis. It will overshoot the
+    limit by one step.
+    """
+    numsteps = int(np.ceil(limit / step))
+    basis = np.array([step * i for i in range(-numsteps, numsteps + 1)])
+    return basis
+
+
+def _linspace_stepped(
+    start: float, stop: float, step: float
+) -> npt.NDArray[np.floating]:
+    """Like np.linspace but with a step size instead of array size.
+
+    Uses the interval [start, stop).
+    """
+    numsteps = int(np.floor((stop - start) / step)) + 1
+    return np.array([start + step * i for i in range(numsteps)])
+
+
+def _interpolate_spec(
+    wl: npt.NDArray[np.floating],
+    spec: npt.NDArray[np.floating],
+    basis: npt.NDArray[np.floating],
+) -> npt.NDArray[np.floating]:
+    """Interpolates the spectrum onto the basis array."""
+    inter_f = interp1d(wl, spec, "cubic", assume_sorted=True)
+    return inter_f(basis)
+
+
+def _sort(
+    x: npt.NDArray[np.floating], y: npt.NDArray[np.floating]
+) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
+    """Sort x and y according to x."""
+    if not np.all(x[:-1] <= x[1:]):
+        xinds = x.argsort()
+        x, y = x[xinds], y[xinds]
+    return x, y
+
+
+def _get_section(
     x: npt.NDArray[np.floating],
     y: npt.NDArray[np.floating],
     lim: tuple[float, float] = None,
 ) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
-    # Sort if not sorted
-    if not np.all(x[:-1] <= x[1:]):
-        xinds = x.argsort()
-        x, y = x[xinds], y[xinds]
+    """Truncate the spectrum to the given limits."""
 
     if lim is None:
         return x.copy(), y.copy()
@@ -62,16 +176,39 @@ def get_section(
         raise ValueError("lim must be within x")
 
     limbool = np.logical_and(x >= lim[0], x <= lim[1])
+
     # Include an extra element if possible
-    if limbool[0] is False and (mini := np.searchsorted(x, lim[0])) > 0:
-        limbool[mini - 1] = True
-    if limbool[-1] is False and (maxi := np.searchsorted(x, lim[-1])) < len(x):
-        limbool[maxi] = True
+    if limbool[0] is False:
+        limbool[np.searchsorted(x, lim[0]) - 1] = True
+    if limbool[-1] is False:
+        limbool[np.searchsorted(x, lim[-1])] = True
 
     return x[limbool], y[limbool]
 
 
+# Classes
+
+
 class Kernel(ABC):
+    """Abstract base class for convolution kernels.
+
+    The behaviour of the kernel should be defined by the following methods:
+
+    Abstract methods
+    ----------------
+
+    prof(wl) -> Profile function
+        Returns the profile function for the given wavelength array.
+
+    step(wl) -> step size
+        Returns the an ideal step size for the kernel. The shape of the kernel
+        should be well-defined on an array of this step size.
+
+    get_default_limits(wl) -> limits
+        Returns an ideal size limit of the kernel. The profile function
+        should be negligible outside this limit.
+    """
+
     @abstractmethod
     def prof(
         self, wl_mid: float
@@ -89,26 +226,70 @@ class Kernel(ABC):
     def kernel(
         self, wl_mid: float, step: float = None, limit: float = None
     ) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
+        """Returns the kernel at the given wavelength array.
+
+        The kernel is calculated using the `prof` method. The step size and
+        limit can be given as arguments. If not, values are calculated using the
+        `step` and `get_default_limits` method. The kernel is always normalized.
+
+        Parameters
+        ----------
+        wl_mid : float
+            The central wavelength of the kernel.
+        step : float, optional
+            The step size of the kernel.
+        limit : float, optional
+            The width limit upto which the kernel is evaluated. Make sure
+            that the profile function is negligible outside this limit.
+
+        Returns
+        -------
+        ndarray[float]
+            The wavelength array of the kernel.
+        ndarray[float]
+            The calculated kernel.
+        """
         if step is None:
             step = self.step(wl_mid)
         if limit is None:
             limit = self.get_default_limits(wl_mid)
-        basis = get_basis(step, limit)
+        basis = _get_basis(step, limit)
         kernel = self.prof(wl_mid)(basis)
         kernel /= np.sum(kernel)
         return basis, kernel
 
 
 class RotKernel(Kernel):
+    """A convolution kernel for broadening due to rotation of the star."""
+
     def __init__(
         self,
         vsini: float,
         limb_coeff: float = DEFAULT_LIMB_COEFF,
     ):
+        """Initializes the RotKernel.
+        This broadening can be mainly characterized using a single
+        parameter: v sin i. Where v is the rotational veocity at the surface of
+        the star and i is the angle which the angle of rotation of the star
+        makes with the line of sight.
+
+        However the limbs of the stars emit less light than the central
+        regions. This effect is taken care of by the limb darkening
+        coefficient. This program assumes a default value of 0.6 as used in
+        Ivan Hubeny's SYNSPEC program.
+
+        Parameters
+        ----------
+            vsini : float (km s-1)
+                The component of rotational velocity of the star along the line
+                of sight in km s-1.
+            limb_coeff : float, default 0.6
+                The limb darkening coefficient."""
         self.vsini = vsini
         self.limb_coeff = limb_coeff
 
     def _get_dl0(self, wl_mid: float) -> float:
+        """Characteristic scale of the rotational kernel."""
         return wl_mid * self.vsini / SPEED_LIGHT_KMS
 
     def get_default_limits(self, wl_mid: float) -> float:
@@ -137,7 +318,26 @@ class RotKernel(Kernel):
 
 
 class InsKernel(Kernel):
+    """A convolution kernel for broadening due to instrumental effects."""
+
     def __init__(self, param: float, paramtype: Literal["fwhm", "res"] = "fwhm"):
+        """Initializes the InsKernel.
+
+        This broadening is modeled as a Gaussian. The width of the Gaussian can
+        be specified by using either the fwhm or the spectral resolution.
+
+        If Full Width at Half Maximum (FWHM) is used, the parameter should be
+        given in the same units as the wavelength array. If spectral resolution
+        is used, the parameter should be the ratio of the wavelength and the
+        FWHM at the given wavelength.
+
+        Parameters
+        ----------
+            param : float (wavelength units (FWHM) or ratio (resolution))
+                The parameter which describes the width of the Gaussian.
+            paramtype : "fwhm" or "res", default "fwhm"
+                The type of the parameter. Either "fwhm" or "res".
+        """
         if paramtype == "fwhm":
             self.fwhm = param
         elif paramtype == "res":
@@ -158,9 +358,10 @@ class InsKernel(Kernel):
     def step(self, wl_mid: float) -> float:
         return self.get_fwhm(wl_mid) / 10.0
 
-    # Δλᵢ = σ√2
     @staticmethod
     def get_dli(fwhm: float) -> float:
+        """Returns the characteristic scale of the instrumental kernel.
+        Also stdev / sqrt(2)"""
         return fwhm / (2 * np.sqrt(np.log(2)))
 
     def prof(
@@ -179,8 +380,26 @@ class InsKernel(Kernel):
 
 
 class Broadening:
-    def __init__(self, kernels: list[Kernel]):
+    """A class which can be used to do broadening of the spectrum.
+
+    This class acts as a container for `Kernels` and provides the broaden method
+    which does the convolution.
+    """
+
+    def __init__(self, kernels: list[Kernel], base_flux: float = 1.0):
+        """Initializes the Broadening class.
+
+        Parameters
+        ----------
+            kernels : list[Kernel]
+                The list of kernels which will be used to do broadening.
+            base_flux : float, default 1.0
+                The flux level corresponding to the base level of the spectrum.
+                For normalized spectra this should be 1.0. If not using
+                normalized spectra, this is best left at 0.0.
+        """
         self.kernels = kernels
+        self.base_flux = base_flux
 
     def broaden(
         self,
@@ -188,41 +407,140 @@ class Broadening:
         spec: npt.NDArray[np.floating],
         lim: tuple[float, float] = None,
     ) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
-        wl, spec = get_section(wl, spec, lim)
+        """Broadens the spectrum. One can optionally truncate the spectrum
+        before broadening.
 
-        spec = 1 - spec
+        Parameters
+        ----------
+            wl : ndarray[float]
+                The wavelength array of the spectrum. It can be in any units. Be
+                sure to set `module.char_step` appropriately. Also should be
+                consistent with kernel parameters. Can take unsorted values.
+            spec : ndarray[float]
+                The flux array of the spectrum.
+            lim : tuple[float, float], optional
+                Optional limits to which the spectrum will be truncated before
+                broadening. If not given, the entire spectrum will be used.
+
+        Returns
+        -------
+            ndarray[float]
+                The wavelength array of the broadened spectrum.
+            ndarray[float]
+                The flux array of the broadened spectrum.
+        """
+
+        wl, spec = _sort(wl, spec)  # Sort the arrays
+        wl, spec = _get_section(wl, spec, lim)  # Truncate to limits
+
+        spec = spec - self.base_flux  # Normalize to base level
 
         wl_mid = (wl[0] + wl[-1]) / 2
         step_in = (wl[-1] - wl[0]) / (len(wl) - 1)
 
+        # Currently we use the minimum step size of the kernels. An argument
+        # could be made to use the maximum instead.
         step = min((k.step(wl_mid) for k in self.kernels))
-        step = max(step, CHARD)
-        step = min(step, step_in)
+        step = max(step, char_step)
+        step = min(step, step_in)  # Don't go smaller than original step size
 
         if lim is None:
-            wl_lin = linspace_stepped(wl[0], wl[-1], step)
+            wl_lin = _linspace_stepped(wl[0], wl[-1], step)
         else:
-            wl_lin = linspace_stepped(lim[0], lim[1], step)
-        spec_lin = interpolate_spec(wl, spec, wl_lin)
+            wl_lin = _linspace_stepped(lim[0], lim[1], step)
+
+        # Interpolate the spectrum to the new wavelength array
+        spec_lin = _interpolate_spec(wl, spec, wl_lin)
+
+        # Convolve the spectrum with the kernels
         for k in self.kernels:
             _, kernel = k.kernel(wl_mid, step)
             spec_lin = convolve(spec_lin, kernel)
 
-        spec_lin = 1 - spec_lin
+        spec_lin = spec_lin + self.base_flux  # Unnormalize
         return wl_lin, spec_lin
 
 
 class RotIns(Broadening):
+    # DRY violated here and in __init__. Make sure to update this docstring if
+    # any parent class is modified.
+    """Class to perform rotational and instrumental broadening of spectra.
+
+    It can be initialized with parameters for the rotational and instrumental
+    components. Thereafter the `broaden` method can be used to perform the
+    broadening.
+
+    Example
+    -------
+
+        wl, spec = np.loadtxt("spectrum.xy", unpack=True)
+        vsini = 20.0  # km s-1
+        res = 50000
+        conv_wl, conv_spec = RotIns(vsini, res, "res").broaden(wl, spec)
+        # conv_wl and conv_spec now describe the broadened spectra.
+
+    Notes
+    -----
+        The input spectra need not have uniform spacing. This module will first
+        cast the input spectra into a uniform grid with an appropriate step
+        size. Nor does the input spectra need to be sorted.
+    """
+
     def __init__(
         self,
-        vsini: float,
-        fwhm: float,
+        vsini: float | None = None,
+        fwhm: float | None = None,
         fwhm_type: Literal["fwhm", "res"] = "fwhm",
         limb_coeff: float = DEFAULT_LIMB_COEFF,
+        base_flux: float = 1.0,
     ):
+        """Initializes the RotIns class.
+
+        After light leaves the photosphere and before being observed by us, the
+        stellar spectrum experiences broadening due to the rotation of the star
+        and instrumental effects. This class can be used to perform both of
+        these on a synthetic spectrum.
+
+        The rotational broadening can be mainly characterized using a single
+        parameter: v sin i. Where v is the rotational veocity at the surface of
+        the star and i is the angle which the angle of rotation of the star
+        makes with the line of sight.
+
+        However the limbs of the stars emit less light than the central
+        regions. This effect is taken care of by the limb darkening
+        coefficient. This program assumes a default value of 0.6 as used in
+        Ivan Hubeny's SYNSPEC program.
+
+        The instrumental broadening is modeled as a Gaussian. The width of the
+        Gaussian can be specified by using either the fwhm or the spectral
+        resolution.
+
+        If Full Width at Half Maximum (FWHM) is used, the parameter should be
+        given in the same units as the wavelength array. If spectral resolution
+        is used, the parameter should be the ratio of the wavelength and the
+        FWHM at the given wavelength.
+
+        Parameters
+        ----------
+            vsini : float (km s-1) or None
+                The component of rotational velocity of the star along the line
+                of sight in km s-1. If None, no rotational broadening will be
+                performed.
+            fwhm : float (wavelength units (FWHM) or ratio (resolution)) | None
+                The parameter which describes the width of the instrumental
+                Gaussian. If None, no instrumental broadening will be performed.
+            fwhm_type : "fwhm" or "res", default "fwhm"
+                The type of the parameter. Either "fwhm" or "res".
+            limb_coeff : float, default 0.6
+                The limb darkening coefficient.
+            base_flux : float, default 1.0
+                The flux level corresponding to the base level of the spectrum.
+                For normalized spectra this should be 1.0. If not using
+                normalized spectra, this is best left at 0.0.
+        """
         kernels: list[Kernel] = []
-        if vsini > EPSILON:
+        if vsini is not None:
             kernels.append(RotKernel(vsini, limb_coeff))
-        if fwhm > EPSILON:
+        if fwhm is not None:
             kernels.append(InsKernel(fwhm, fwhm_type))
-        super().__init__(kernels)
+        super().__init__(kernels, base_flux)
