@@ -100,7 +100,7 @@ SPEED_LIGHT_KMS = 2.99792e5
 # Module level variables
 
 char_step = 0.01
-
+should_convolve_pad = True
 
 # Utility functions
 
@@ -108,15 +108,20 @@ char_step = 0.01
 def convolve(
     spec: npt.NDArray[np.floating],
     kernel: npt.NDArray[np.floating],
+    pad: bool | None = None,
 ) -> npt.NDArray[np.floating]:
     """Convolves the spectrum with the kernel.
 
-    Pads the spectrum with edge values before convolution.
+    Optionally, pads the spectrum with edge values before convolution.
     """
-    kw = len(kernel)
-    spec = np.pad(spec, (kw, kw), "edge")
-    conv = np.convolve(spec, kernel, "same")
-    return conv[kw:-kw]
+    if pad is None:
+        pad = should_convolve_pad
+    if pad:
+        kw = len(kernel)
+        spec = np.pad(spec, (kw, kw), "edge")
+        conv = np.convolve(spec, kernel, "same")
+        return conv[kw:-kw]
+    return np.convolve(spec, kernel, "same")
 
 
 def _get_basis(step: float, limit: float) -> npt.NDArray[np.floating]:
