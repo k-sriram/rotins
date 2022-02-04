@@ -212,12 +212,12 @@ def test_broad(wl, fwhm, scale, kernel_type, kernel_args, makeplots):
 @pytest.mark.parametrize(
     "outfile, fwhm, vsini",
     [
-        ("fwhm01", 0.1, 0.0),
+        ("fwhm01", 0.1, None),
         ("fwhm05", 0.5, 0.0),
-        ("fwhm2", 2.0, 0.0),
-        ("vrot10", 0.0, 10.0),
+        ("fwhm2", 2.0, None),
+        ("vrot10", None, 10.0),
         ("vrot50", 0.0, 50.0),
-        ("vrot200", 0.0, 200.0),
+        ("vrot200", None, 200.0),
         ("vrot25fwhm02", 0.2, 25.0),
     ],
 )

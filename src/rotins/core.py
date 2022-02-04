@@ -95,7 +95,6 @@ __all__ = ["convolve", "Kernel", "RotKernel", "InsKernel", "Broadening", "RotIns
 
 DEFAULT_LIMB_COEFF = 0.6
 SPEED_LIGHT_KMS = 2.99792e5
-EPSILON = 1e-6
 
 
 # Module level variables
@@ -539,8 +538,8 @@ class RotIns(Broadening):
                 normalized spectra, this is best left at 0.0.
         """
         kernels: list[Kernel] = []
-        if vsini is not None:
+        if vsini is not None and vsini != 0.0:
             kernels.append(RotKernel(vsini, limb_coeff))
-        if fwhm is not None:
+        if fwhm is not None and fwhm != 0.0:
             kernels.append(InsKernel(fwhm, fwhm_type))
         super().__init__(kernels, base_flux)
