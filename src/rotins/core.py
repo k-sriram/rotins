@@ -440,13 +440,13 @@ class Broadening:
         spec = spec - self.base_flux  # Normalize to base level
 
         wl_mid = (wl[0] + wl[-1]) / 2
-        step_in = (wl[-1] - wl[0]) / (len(wl) - 1)
+        step_in = np.diff(wl).min()
 
         # Currently we use the minimum step size of the kernels. An argument
         # could be made to use the maximum instead.
         step = min((k.step(wl_mid) for k in self.kernels))
         step = max(step, char_step)
-        step = min(step, step_in)  # Don't go smaller than original step size
+        step = min(step, step_in)  # Don't go larger than original step size
 
         if lim is None:
             wl_lin = _linspace_stepped(wl[0], wl[-1], step)
