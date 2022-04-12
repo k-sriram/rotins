@@ -477,11 +477,12 @@ class RotIns(Broadening):
     Example
     -------
 
-        wl, spec = np.loadtxt("spectrum.xy", unpack=True)
-        vsini = 20.0  # km s-1
-        res = 50000
-        conv_wl, conv_spec = RotIns(vsini, res, "res").broaden(wl, spec)
-        # conv_wl and conv_spec now describe the broadened spectra.
+
+        >>> wl, spec = np.loadtxt("spectrum.xy", unpack=True)
+        >>> vsini = 20.0  # km s-1
+        >>> res = 50000
+        >>> conv_wl, conv_spec = RotIns(vsini, res, "res").broaden(wl, spec)
+        conv_wl and conv_spec now describe the broadened spectra.
 
     Notes
     -----
