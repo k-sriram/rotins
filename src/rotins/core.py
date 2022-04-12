@@ -182,9 +182,9 @@ def _get_section(
     limbool = np.logical_and(x >= lim[0], x <= lim[1])
 
     # Include an extra element if possible
-    if limbool[0] is False:
+    if not limbool[0]:
         limbool[np.searchsorted(x, lim[0]) - 1] = True
-    if limbool[-1] is False:
+    if not limbool[-1]:
         limbool[np.searchsorted(x, lim[-1])] = True
 
     return x[limbool], y[limbool]
