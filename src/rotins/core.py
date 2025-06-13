@@ -32,31 +32,56 @@ r"""
 rotins
 ======
 
-This module provides functions to perform rotional and instrumental
-broadening on spectra. The main functionality is provided by the class RotIns.
-If you have a spectrum in the form of a wavelength array and a flux array,
-you can use the class to perform rotaional and/or instrumental broadening.
+This module provides functionality to perform rotational and instrumental
+broadening on stellar spectra. It offers both object-oriented and functional
+programming interfaces to accommodate different programming styles.
 
-Example
--------
-    Following is the most straightforward example of how to use this module.
+Interfaces
+---------
+    1. Class-based (RotIns):
+        Provides an object-oriented interface with full configuration options.
+        Suitable for complex workflows and when you need to customize the
+        broadening process.
 
-        conv_wl, conv_spec = RotIns(vsini, fwhm).broaden(wl, spec)
+    2. Functional (rotins):
+        Provides a functional programming interface that returns a closure.
+        Ideal for simple workflows and when you need to apply the same
+        broadening parameters to multiple spectra.
+
+Examples
+--------
+    Using the class-based interface:
+        >>> from rotins import RotIns
+        >>> broadener = RotIns(vsini=50.0, fwhm=0.1)
+        >>> conv_wl, conv_spec = broadener.broaden(wl, spec)
+
+    Using the functional interface:
+        >>> from rotins import rotins
+        >>> broaden = rotins(vsini=50.0, fwhm=0.1)
+        >>> conv_wl1, conv_spec1 = broaden(wl1, spec1)
+        >>> conv_wl2, conv_spec2 = broaden(wl2, spec2)
+
+    Using spectral resolution instead of FWHM:
+        >>> broadener = RotIns(vsini=50.0, fwhm=50000, fwhm_type="res")
+        >>> conv_wl, conv_spec = broadener.broaden(wl, spec)
 
 Notes
 -----
     The input spectra need not have uniform spacing. This module will first
     cast the input spectra into a uniform grid with an appropriate step size.
 
-    If either of vsini or fwhm is given as `None`, the corresponding broadening
-    will be skipped.
+    If either of vsini or fwhm is given as `None` or 0.0, the corresponding
+    broadening will be skipped.
+
+    For normalized spectra, use base_flux=1.0 (default).
+    For non-normalized spectra, use base_flux=0.0.
 
     The calculations are done according to the book:
     Gray, D.F., 2008, The Observation and Analysis of Stellar Photospheres,
     Cambridge University Press, Cambridge, 3rd edition.
 
-    The formula for the convolutions are:
-
+Theory
+------
     For rotational broadening the kernel is:
     .. math::
     G(\Delta\lambda) = \frac{2(1-\epsilon)\[1-(\Delta\lambda/\Delta\lambda_0)^2\]^{1/2}+(\pi\epsilon/2)\[1-(\Delta\lambda/\Delta\lambda_0)^2\]}{\pi\Delta\lambda_0(1-\epsilon/3)}
@@ -65,12 +90,12 @@ Notes
     \Delta\lambda_0 = \frac{\lambda v \sin i}{c}
 
     For instrumental broadening the kernel is a Gaussian with standard
-    deviation given by the FWHM.
+    deviation given by the FWHM:
     .. math::
     \sigma = \frac{\textrm{FWHM}}{2\sqrt{2\ln 2}}
 
-Attributes
-----------
+Module Attributes
+---------------
     char_step : float = 0.01
         Minimum characteristic step size for the convolution kernels.
         The default value is good for optical spectra when described in
