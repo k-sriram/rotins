@@ -169,7 +169,7 @@ def _sort(
 def _get_section(
     x: npt.NDArray[np.floating],
     y: npt.NDArray[np.floating],
-    lim: tuple[float, float] = None,
+    lim: tuple[float, float] | None = None,
 ) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
     """Truncate the spectrum to the given limits."""
 
@@ -228,7 +228,7 @@ class Kernel(ABC):
         pass
 
     def kernel(
-        self, wl_mid: float, step: float = None, limit: float = None
+        self, wl_mid: float, step: float | None = None, limit: float | None = None
     ) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         """Returns the kernel at the given wavelength array.
 
@@ -348,13 +348,16 @@ class InsKernel(Kernel):
             self.res = param
         else:
             raise ValueError(f"Invalid value for paramtype: {paramtype}")
-        self.paramtype = paramtype
+        self.paramtype: Literal["fwhm", "res"] = paramtype
 
     def get_fwhm(self, wl_mid: float) -> float:
         if self.paramtype == "fwhm":
             return self.fwhm
         elif self.paramtype == "res":
             return wl_mid / self.res
+        raise NotImplementedError(
+            f"get_fwhm not implemented for paramtype: {self.paramtype}"
+        )
 
     def get_default_limits(self, wl_mid: float) -> float:
         return self.get_dli(self.get_fwhm(wl_mid)) * 4
@@ -409,7 +412,7 @@ class Broadening:
         self,
         wl: npt.NDArray[np.floating],
         spec: npt.NDArray[np.floating],
-        lim: tuple[float, float] = None,
+        lim: tuple[float, float] | None = None,
     ) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         """Broadens the spectrum. One can optionally truncate the spectrum
         before broadening.

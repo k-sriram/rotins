@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
@@ -12,10 +13,10 @@ from scipy.optimize import root_scalar
 
 import rotins.core as core
 
-if list(map(int,scipy.__version__.split("."))) < [1, 6, 0]:
-    from scipy.integrate import trapz # type: ignore
+if list(map(int, scipy.__version__.split("."))) < [1, 6, 0]:
+    from scipy.integrate import trapz  # type: ignore
 else:
-    from scipy.integrate import trapezoid as trapz # type: ignore
+    from scipy.integrate import trapezoid as trapz  # type: ignore
 EPSILON = 1e-6
 WL_MID = 4000.0
 SAMPLE_SIZE = 2001
@@ -45,7 +46,7 @@ def gaussian(
     mean: float = 0.0, std: float = 1.0, size: int = SAMPLE_SIZE, width: float = 20.0
 ) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
     x = np.linspace(-width / 2, width / 2, size) + mean
-    y = scipy.stats.norm(mean, std).pdf(x)
+    y = cast(scipy.stats.rv_continuous, scipy.stats.norm(mean, std)).pdf(x)
     return x, y
 
 
@@ -231,13 +232,13 @@ def test_rotins(outfile, fwhm, vsini, makeplots, testcase):
     outfile = f"t{testcase}_{outfile}"
     wl, flux = np.loadtxt(TESTDATA / SPEC, unpack=True)
 
-    cwl, cflux = core.RotIns(vsini, fwhm).broaden(wl, flux)
+    cwl, cflux = core.RotIns(vsini, fwhm).broaden(wl, flux) # type: ignore
     ewl, eflux = np.loadtxt(TESTDATA / outfile, unpack=True)
 
-    lim = (max(ewl[0], cwl[0]), min(ewl[-1], cwl[-1]))
+    lim = (max(ewl[0], cwl[0]), min(ewl[-1], cwl[-1])) # type: ignore
     eflux = 1 - eflux
     cflux = 1 - cflux
-    n = max(len(ewl), len(cwl))
+    n = max(len(ewl), len(cwl)) # type: ignore
     x = np.linspace(lim[0], lim[1], n)
 
     cflux = interp1d(cwl, cflux, kind="cubic")(x)
@@ -259,7 +260,7 @@ def test_rotins(outfile, fwhm, vsini, makeplots, testcase):
         plt.savefig(f"tests/rotins_{outfile}.png")
 
     if vsini == 0.0:
-        ifwhm = measure_fwhm(wl, 1 - flux)
+        ifwhm = measure_fwhm(wl, 1 - flux) # type: ignore
         efwhm = measure_fwhm(x, eflux)
         cfwhm = measure_fwhm(x, cflux)
         tfwhm = np.sqrt(np.square([ifwhm, fwhm]).sum())
