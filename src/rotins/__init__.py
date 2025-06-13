@@ -2,7 +2,7 @@
 rotins - A module for rotational and instrumental broadening of stellar spectra
 ============================================================================
 
-This module provides functionality to perform rotational and instrumental 
+This module provides functionality to perform rotational and instrumental
 broadening on stellar spectra.
 """
 

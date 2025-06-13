@@ -131,5 +131,5 @@ If you use this package in your research, please cite:
   author = {Krishna, Sriram},
   title = {rotins: A Python package for stellar spectral broadening},
   year = {2022},
-  url = {https://github.com/yourusername/rotins}
+  url = {https://github.com/k-sriram/rotins}
 }
