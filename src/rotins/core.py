@@ -560,10 +560,7 @@ def rotins(
     fwhm_type: Literal["fwhm", "res"] = "fwhm",
     limb_coeff: float = DEFAULT_LIMB_COEFF,
     base_flux: float = 1.0,
-) -> Callable[
-    [npt.NDArray[np.floating], npt.NDArray[np.floating], tuple[float, float] | None],
-    tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]],
-]:
+) -> Callable[..., tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]]:
     """Creates a function that applies rotational and instrumental broadening to spectra.
 
     This is a functional programming interface to the RotIns class. It returns a closure
@@ -589,7 +586,7 @@ def rotins(
 
     Returns
     -------
-    Callable[[NDArray, NDArray, Optional[tuple[float, float]]], tuple[NDArray, NDArray]]
+    Callable
         A function that takes wavelength and flux arrays and optional limits,
         and returns the broadened spectrum.
 

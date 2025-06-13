@@ -232,13 +232,13 @@ def test_rotins(outfile, fwhm, vsini, makeplots, testcase):
     outfile = f"t{testcase}_{outfile}"
     wl, flux = np.loadtxt(TESTDATA / SPEC, unpack=True)
 
-    cwl, cflux = core.RotIns(vsini, fwhm).broaden(wl, flux) # type: ignore
+    cwl, cflux = core.RotIns(vsini, fwhm).broaden(wl, flux)  # type: ignore
     ewl, eflux = np.loadtxt(TESTDATA / outfile, unpack=True)
 
-    lim = (max(ewl[0], cwl[0]), min(ewl[-1], cwl[-1])) # type: ignore
+    lim = (max(ewl[0], cwl[0]), min(ewl[-1], cwl[-1]))  # type: ignore
     eflux = 1 - eflux
     cflux = 1 - cflux
-    n = max(len(ewl), len(cwl)) # type: ignore
+    n = max(len(ewl), len(cwl))  # type: ignore
     x = np.linspace(lim[0], lim[1], n)
 
     cflux = interp1d(cwl, cflux, kind="cubic")(x)
@@ -260,7 +260,7 @@ def test_rotins(outfile, fwhm, vsini, makeplots, testcase):
         plt.savefig(f"tests/rotins_{outfile}.png")
 
     if vsini == 0.0:
-        ifwhm = measure_fwhm(wl, 1 - flux) # type: ignore
+        ifwhm = measure_fwhm(wl, 1 - flux)  # type: ignore
         efwhm = measure_fwhm(x, eflux)
         cfwhm = measure_fwhm(x, cflux)
         tfwhm = np.sqrt(np.square([ifwhm, fwhm]).sum())
@@ -269,3 +269,82 @@ def test_rotins(outfile, fwhm, vsini, makeplots, testcase):
         assert abs(cfwhm - efwhm) / efwhm < 1e-3
 
     assert stdev < 1e-4
+
+
+def test_rotins_functional():
+    """Test that the functional interface produces identical results to the class interface"""
+    wl = np.linspace(4000, 4100, 1000)
+    flux = 1 - np.exp(-((wl - 4050) ** 2) / 2)
+
+    # Parameters to test
+    params = [
+        (100.0, 0.1, "fwhm"),  # Both rotational and instrumental
+        (50.0, None, "fwhm"),  # Only rotational
+        (None, 0.2, "fwhm"),  # Only instrumental
+        (30.0, 5000.0, "res"),  # Using resolution instead of fwhm
+    ]
+
+    for vsini, fwhm, fwhm_type in params:
+        # Using class interface
+        class_broadener = core.RotIns(vsini, fwhm, fwhm_type)
+        class_wl, class_flux = class_broadener.broaden(wl, flux)
+
+        # Using functional interface
+        func_broadener = core.rotins(vsini, fwhm, fwhm_type)
+        func_wl, func_flux = func_broadener(wl, flux, None)
+
+        # Results should be identical
+        assert np.allclose(class_wl, func_wl)
+        assert np.allclose(class_flux, func_flux)
+
+
+def test_rotins_functional_with_limits():
+    """Test the functional interface with limits parameter"""
+    wl = np.linspace(4000, 4100, 1000)
+    flux = 1 - np.exp(-((wl - 4050) ** 2) / 2)
+    limits = (4020, 4080)
+
+    # Using both rotational and instrumental broadening
+    broaden = core.rotins(vsini=50.0, fwhm=0.2)
+
+    # Without limits
+    full_wl, full_flux = broaden(wl, flux, None)
+
+    # With limits
+    lim_wl, lim_flux = broaden(wl, flux, limits)
+
+    # Limited wavelength range should be within the specified limits
+    assert lim_wl[0] >= limits[0]
+    assert lim_wl[-1] <= limits[1]
+
+    # Interpolate limited result to compare with full result
+    full_in_lim = interp1d(full_wl, full_flux)(lim_wl)
+    assert np.allclose(full_in_lim, lim_flux)
+
+
+def test_rotins_functional_parameters():
+    """Test that the functional interface correctly handles all parameters"""
+    wl = np.linspace(4000, 4100, 1000)
+    flux = 1 - np.exp(-((wl - 4050) ** 2) / 2)
+
+    # Test with different limb darkening coefficients
+    broaden1 = core.rotins(vsini=50.0, limb_coeff=0.6)
+    broaden2 = core.rotins(vsini=50.0, limb_coeff=0.8)
+
+    wl1, flux1 = broaden1(wl, flux, None)
+    wl2, flux2 = broaden2(wl, flux, None)
+
+    # Different limb darkening should produce different results
+    assert not np.allclose(flux1, flux2)
+
+    # Test with different base flux levels
+    raw_flux = np.exp(-((wl - 4050) ** 2) / 2) * 1000  # Non-normalized flux
+    broaden_norm = core.rotins(vsini=50.0, fwhm=0.2, base_flux=1.0)
+    broaden_raw = core.rotins(vsini=50.0, fwhm=0.2, base_flux=0.0)
+
+    # Both should work without errors
+    _, norm_flux = broaden_norm(wl, 1 - raw_flux / 1000, None)  # Normalized
+    _, raw_flux_broad = broaden_raw(wl, raw_flux, None)  # Non-normalized
+
+    # Results should be proportional
+    assert np.allclose(1 - raw_flux_broad / 1000, norm_flux)
