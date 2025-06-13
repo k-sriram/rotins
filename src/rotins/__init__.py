@@ -6,6 +6,6 @@ This module provides functionality to perform rotational and instrumental
 broadening on stellar spectra.
 """
 
-from rotins.core import Broadening, InsKernel, RotIns
+from rotins.core import Broadening, InsKernel, RotIns, rotins
 
-__all__ = ["RotIns", "InsKernel", "Broadening"]
+__all__ = ["RotIns", "InsKernel", "Broadening", "rotins"]

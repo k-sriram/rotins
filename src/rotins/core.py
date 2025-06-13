@@ -552,3 +552,66 @@ class RotIns(Broadening):
         if fwhm is not None and fwhm != 0.0:
             kernels.append(InsKernel(fwhm, fwhm_type))
         super().__init__(kernels, base_flux)
+
+
+def rotins(
+    vsini: float | None = None,
+    fwhm: float | None = None,
+    fwhm_type: Literal["fwhm", "res"] = "fwhm",
+    limb_coeff: float = DEFAULT_LIMB_COEFF,
+    base_flux: float = 1.0,
+) -> Callable[
+    [npt.NDArray[np.floating], npt.NDArray[np.floating], tuple[float, float] | None],
+    tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]],
+]:
+    """Creates a function that applies rotational and instrumental broadening to spectra.
+
+    This is a functional programming interface to the RotIns class. It returns a closure
+    that can be used to broaden multiple spectra with the same parameters.
+
+    Parameters
+    ----------
+    vsini : float | None, optional
+        The component of rotational velocity of the star along the line
+        of sight in km s-1. If None, no rotational broadening will be
+        performed.
+    fwhm : float | None, optional
+        The parameter which describes the width of the instrumental
+        Gaussian. If None, no instrumental broadening will be performed.
+    fwhm_type : "fwhm" or "res", default "fwhm"
+        The type of the parameter. Either "fwhm" or "res".
+    limb_coeff : float, default 0.6
+        The limb darkening coefficient.
+    base_flux : float, default 1.0
+        The flux level corresponding to the base level of the spectrum.
+        For normalized spectra this should be 1.0. If not using
+        normalized spectra, this is best left at 0.0.
+
+    Returns
+    -------
+    Callable[[NDArray, NDArray, Optional[tuple[float, float]]], tuple[NDArray, NDArray]]
+        A function that takes wavelength and flux arrays and optional limits,
+        and returns the broadened spectrum.
+
+    Example
+    -------
+    >>> # Create a broadening function with specific parameters
+    >>> broaden = rotins(vsini=100.0, fwhm=0.1)
+    >>> # Apply it to multiple spectra
+    >>> conv_wl1, conv_spec1 = broaden(wl1, spec1)
+    >>> # Can optionally specify limits
+    >>> conv_wl2, conv_spec2 = broaden(wl2, spec2, lim=(4000, 5000))
+    >>> # Different base flux for non-normalized spectra
+    >>> broaden_raw = rotins(vsini=100.0, fwhm=0.1, base_flux=0.0)
+    >>> conv_wl3, conv_spec3 = broaden_raw(wl3, spec3)
+    """
+    broadener = RotIns(vsini, fwhm, fwhm_type, limb_coeff, base_flux)
+
+    def broadening_function(
+        wl: npt.NDArray[np.floating],
+        spec: npt.NDArray[np.floating],
+        lim: tuple[float, float] | None = None,
+    ) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
+        return broadener.broaden(wl, spec, lim)
+
+    return broadening_function
