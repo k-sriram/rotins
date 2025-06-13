@@ -5,13 +5,17 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 import pytest
+import scipy
 import scipy.stats
-from scipy.integrate import trapz
 from scipy.interpolate import interp1d
 from scipy.optimize import root_scalar
 
 import rotins.core as core
 
+if list(map(int,scipy.__version__.split("."))) < [1, 6, 0]:
+    from scipy.integrate import trapz # type: ignore
+else:
+    from scipy.integrate import trapezoid as trapz # type: ignore
 EPSILON = 1e-6
 WL_MID = 4000.0
 SAMPLE_SIZE = 2001
