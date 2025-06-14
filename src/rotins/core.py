@@ -105,7 +105,7 @@ Module Attributes
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Callable, Literal
+from typing import Callable, Literal, Optional, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -133,7 +133,7 @@ should_convolve_pad = True
 def convolve(
     spec: npt.NDArray[np.floating],
     kernel: npt.NDArray[np.floating],
-    pad: bool | None = None,
+    pad: Optional[bool] = None,
 ) -> npt.NDArray[np.floating]:
     """Convolves the spectrum with the kernel.
 
@@ -194,8 +194,8 @@ def _sort(
 def _get_section(
     x: npt.NDArray[np.floating],
     y: npt.NDArray[np.floating],
-    lim: tuple[float, float] | None = None,
-) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
+    lim: Optional[Tuple[float, float]] = None,
+) -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
     """Truncate the spectrum to the given limits."""
 
     if lim is None:
@@ -253,8 +253,8 @@ class Kernel(ABC):
         pass
 
     def kernel(
-        self, wl_mid: float, step: float | None = None, limit: float | None = None
-    ) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
+        self, wl_mid: float, step: Optional[float] = None, limit: Optional[float] = None
+    ) -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         """Returns the kernel at the given wavelength array.
 
         The kernel is calculated using the `prof` method. The step size and
@@ -437,8 +437,8 @@ class Broadening:
         self,
         wl: npt.NDArray[np.floating],
         spec: npt.NDArray[np.floating],
-        lim: tuple[float, float] | None = None,
-    ) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
+        lim: Optional[Tuple[float, float]] = None,
+    ) -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         """Broadens the spectrum. One can optionally truncate the spectrum
         before broadening.
 
@@ -521,8 +521,8 @@ class RotIns(Broadening):
 
     def __init__(
         self,
-        vsini: float | None = None,
-        fwhm: float | None = None,
+        vsini: Optional[float] = None,
+        fwhm: Optional[float] = None,
         fwhm_type: Literal["fwhm", "res"] = "fwhm",
         limb_coeff: float = DEFAULT_LIMB_COEFF,
         base_flux: float = 1.0,
@@ -580,12 +580,12 @@ class RotIns(Broadening):
 
 
 def rotins(
-    vsini: float | None = None,
-    fwhm: float | None = None,
+    vsini: Optional[float] = None,
+    fwhm: Optional[float] = None,
     fwhm_type: Literal["fwhm", "res"] = "fwhm",
     limb_coeff: float = DEFAULT_LIMB_COEFF,
     base_flux: float = 1.0,
-) -> Callable[..., tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]]:
+) -> Callable[..., Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]]:
     """Creates a function that applies rotational and instrumental broadening to spectra.
 
     This is a functional programming interface to the RotIns class. It returns a closure
@@ -593,11 +593,11 @@ def rotins(
 
     Parameters
     ----------
-    vsini : float | None, optional
+    vsini : Optional[float], optional
         The component of rotational velocity of the star along the line
         of sight in km s-1. If None, no rotational broadening will be
         performed.
-    fwhm : float | None, optional
+    fwhm : Optional[float], optional
         The parameter which describes the width of the instrumental
         Gaussian. If None, no instrumental broadening will be performed.
     fwhm_type : "fwhm" or "res", default "fwhm"
@@ -632,8 +632,8 @@ def rotins(
     def broadening_function(
         wl: npt.NDArray[np.floating],
         spec: npt.NDArray[np.floating],
-        lim: tuple[float, float] | None = None,
-    ) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
+        lim: Optional[Tuple[float, float]] = None,
+    ) -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         return broadener.broaden(wl, spec, lim)
 
     return broadening_function
