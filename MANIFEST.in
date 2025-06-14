@@ -1,1 +1,18 @@
-global-include py.typed
+include LICENSE
+include README.md
+include pyproject.toml
+include setup.cfg
+
+# Include the py.typed marker for PEP 561 compliance
+include src/rotins/py.typed
+
+# Include all Python source in src
+recursive-include src/rotins *.py
+
+# Explicitly exclude development and test files
+exclude tox.ini
+exclude dev_requirements.txt
+exclude test_requirements.txt
+recursive-exclude tests *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[cod]
