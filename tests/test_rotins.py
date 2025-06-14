@@ -353,10 +353,9 @@ def test_rotins_functional_parameters():
 
 def test_version():
     """Test that package version is consistent."""
-    from importlib.metadata import version
     from rotins import __version__
 
-    package_version = version("rotins")
+    package_version = metadata.version("rotins")
     assert package_version == __version__, (
         f"Version mismatch: importlib.metadata reports {package_version}, "
         f"but __version__ is {__version__}"
