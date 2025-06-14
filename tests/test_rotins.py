@@ -15,9 +15,9 @@ from scipy.optimize import root_scalar
 import rotins.core as core
 
 if list(map(int, scipy.__version__.split("."))) < [1, 6, 0]:
-    from scipy.integrate import trapz  # type: ignore
+    from scipy.integrate import trapz
 else:
-    from scipy.integrate import trapezoid as trapz  # type: ignore
+    from scipy.integrate import trapezoid as trapz
 EPSILON = 1e-6
 WL_MID = 4000.0
 SAMPLE_SIZE = 2001
@@ -233,13 +233,13 @@ def test_rotins(outfile, fwhm, vsini, makeplots, testcase):
     outfile = f"t{testcase}_{outfile}"
     wl, flux = np.loadtxt(TESTDATA / SPEC, unpack=True)
 
-    cwl, cflux = core.RotIns(vsini, fwhm).broaden(wl, flux)  # type: ignore
+    cwl, cflux = core.RotIns(vsini, fwhm).broaden(wl, flux)
     ewl, eflux = np.loadtxt(TESTDATA / outfile, unpack=True)
 
-    lim = (max(ewl[0], cwl[0]), min(ewl[-1], cwl[-1]))  # type: ignore
+    lim = (max(ewl[0], cwl[0]), min(ewl[-1], cwl[-1]))
     eflux = 1 - eflux
     cflux = 1 - cflux
-    n = max(len(ewl), len(cwl))  # type: ignore
+    n = max(len(ewl), len(cwl))
     x = np.linspace(lim[0], lim[1], n)
 
     cflux = interp1d(cwl, cflux, kind="cubic")(x)
@@ -261,7 +261,7 @@ def test_rotins(outfile, fwhm, vsini, makeplots, testcase):
         plt.savefig(f"tests/rotins_{outfile}.png")
 
     if vsini == 0.0:
-        ifwhm = measure_fwhm(wl, 1 - flux)  # type: ignore
+        ifwhm = measure_fwhm(wl, 1 - flux)
         efwhm = measure_fwhm(x, eflux)
         cfwhm = measure_fwhm(x, cflux)
         tfwhm = np.sqrt(np.square([ifwhm, fwhm]).sum())
