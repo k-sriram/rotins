@@ -472,6 +472,9 @@ class Broadening:
             ndarray[float]
                 The flux array of the broadened spectrum.
         """
+        # If there are no kernels, return the input unchanged
+        if not self.kernels:
+            return wl, spec
 
         wl, spec = _sort(wl, spec)  # Sort the arrays
         wl, spec = _get_section(wl, spec, lim)  # Truncate to limits
