@@ -317,6 +317,9 @@ class RotKernel(Kernel):
         self.vsini = vsini
         self.limb_coeff = limb_coeff
 
+    def __repr__(self) -> str:
+        return f"RotKernel(vsini={self.vsini}, limb_coeff={self.limb_coeff})"
+
     def _get_dl0(self, wl_mid: float) -> float:
         """Characteristic scale of the rotational kernel."""
         return wl_mid * self.vsini / SPEED_LIGHT_KMS
@@ -375,6 +378,10 @@ class InsKernel(Kernel):
             raise ValueError(f"Invalid value for paramtype: {paramtype}")
         self.paramtype: Literal["fwhm", "res"] = paramtype
 
+    def __repr__(self) -> str:
+        param = self.fwhm if self.paramtype == "fwhm" else self.res
+        return f"InsKernel({self.paramtype}={param})"
+
     def get_fwhm(self, wl_mid: float) -> float:
         if self.paramtype == "fwhm":
             return self.fwhm
@@ -432,6 +439,10 @@ class Broadening:
         """
         self.kernels = kernels
         self.base_flux = base_flux
+
+    def __repr__(self) -> str:
+        kernels_str = ", ".join(repr(k) for k in self.kernels)
+        return f"Broadening(kernels=[{kernels_str}], base_flux={self.base_flux})"
 
     def broaden(
         self,
@@ -577,6 +588,24 @@ class RotIns(Broadening):
         if fwhm is not None and fwhm != 0.0:
             kernels.append(InsKernel(fwhm, fwhm_type))
         super().__init__(kernels, base_flux)
+
+    def __repr__(self) -> str:
+        vsini, fwhm, fwhm_type, limb_coeff = None, None, None, None
+        for k in self.kernels:
+            if isinstance(k, RotKernel):
+                vsini = k.vsini
+                limb_coeff = k.limb_coeff
+            elif isinstance(k, InsKernel):
+                fwhm = k.fwhm if k.paramtype == "fwhm" else k.res
+                fwhm_type = k.paramtype
+        if fwhm is not None and fwhm_type is not None:
+            fwhm_str = f"{fwhm_type}={fwhm}"
+        else:
+            fwhm_str = "fwhm=None"
+        return (
+            f"RotIns(vsini={vsini}, {fwhm_str}, limb_coeff={limb_coeff}, "
+            f"base_flux={self.base_flux})"
+        )
 
 
 def rotins(

@@ -360,3 +360,70 @@ def test_version():
         f"Version mismatch: importlib.metadata reports {package_version}, "
         f"but __version__ is {__version__}"
     )
+
+
+def test_rotkernel_repr():
+    """Test the string representation of RotKernel."""
+    kernel = core.RotKernel(30.0, limb_coeff=0.6)
+    expected = "RotKernel(vsini=30.0, limb_coeff=0.6)"
+    assert repr(kernel) == expected
+
+    # Test with different values
+    kernel = core.RotKernel(100.0, limb_coeff=0.8)
+    expected = "RotKernel(vsini=100.0, limb_coeff=0.8)"
+    assert repr(kernel) == expected
+
+
+def test_inskernel_repr():
+    """Test the string representation of InsKernel."""
+    # Test with FWHM parameter type
+    kernel = core.InsKernel(0.1, "fwhm")
+    expected = "InsKernel(fwhm=0.1)"
+    assert repr(kernel) == expected
+
+    # Test with resolution parameter type
+    kernel = core.InsKernel(50000, "res")
+    expected = "InsKernel(res=50000)"
+    assert repr(kernel) == expected
+
+
+def test_broadening_repr():
+    """Test the string representation of Broadening class."""
+    # Test with single kernel
+    rot_kernel = core.RotKernel(30.0)
+    broadening = core.Broadening([rot_kernel], base_flux=1.0)
+    expected = (
+        "Broadening(kernels=[RotKernel(vsini=30.0, limb_coeff=0.6)], " "base_flux=1.0)"
+    )
+    assert repr(broadening) == expected
+
+    # Test with multiple kernels
+    ins_kernel = core.InsKernel(50000, "res")
+    broadening = core.Broadening([rot_kernel, ins_kernel], base_flux=0.0)
+    expected = (
+        "Broadening(kernels=["
+        "RotKernel(vsini=30.0, limb_coeff=0.6), "
+        "InsKernel(res=50000)"
+        "], base_flux=0.0)"
+    )
+    assert repr(broadening) == expected
+
+
+def test_rotins_repr():
+    """Test the string representation of RotIns class."""
+    # Test with both vsini and fwhm
+    rotins = core.RotIns(
+        vsini=50.0, fwhm=0.1, fwhm_type="fwhm", limb_coeff=0.6, base_flux=1.0
+    )
+    expected = "RotIns(vsini=50.0, fwhm=0.1, " "limb_coeff=0.6, base_flux=1.0)"
+    assert repr(rotins) == expected
+
+    # Test with only vsini
+    rotins = core.RotIns(vsini=30.0, fwhm=None)
+    expected = "RotIns(vsini=30.0, fwhm=None, " "limb_coeff=0.6, base_flux=1.0)"
+    assert repr(rotins) == expected
+
+    # Test with only fwhm as resolution
+    rotins = core.RotIns(vsini=None, fwhm=50000, fwhm_type="res")
+    expected = "RotIns(vsini=None, res=50000, " "limb_coeff=None, base_flux=1.0)"
+    assert repr(rotins) == expected
