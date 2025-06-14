@@ -586,7 +586,7 @@ def rotins(
     limb_coeff: float = DEFAULT_LIMB_COEFF,
     base_flux: float = 1.0,
 ) -> Callable[..., Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]]:
-    """Creates a function that applies rotational and instrumental broadening to spectra.
+    """Creates a function that applies rotational and instrumental broadening.
 
     This is a functional programming interface to the RotIns class. It returns a closure
     that can be used to broaden multiple spectra with the same parameters.

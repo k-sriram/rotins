@@ -273,7 +273,7 @@ def test_rotins(outfile, fwhm, vsini, makeplots, testcase):
 
 
 def test_rotins_functional():
-    """Test that the functional interface produces identical results to the class interface"""
+    """Test that the functional interface is identical to the class interface"""
     wl = np.linspace(4000, 4100, 1000)
     flux = 1 - np.exp(-((wl - 4050) ** 2) / 2)
 
