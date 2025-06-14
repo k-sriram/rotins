@@ -6,7 +6,10 @@ mypy_extensions==1.1.0; python_version >= '3.9'
 mypy_extensions==1.0.0; python_version < '3.9'
 packaging==25.0
 pathspec==0.12.1
-pluggy==1.6.0
+pluggy==1.6.0; python_version >= '3.9'
+pluggy==1.5.0; python_version < '3.9'
 Pygments==2.19.1
-pytest==8.4.0
-typing_extensions==4.14.0
+pytest==8.4.0; python_version >= '3.9'
+pytest==7.4.0; python_version < '3.9'
+typing_extensions==4.14.0; python_version >= '3.9'
+typing_extensions==4.13.2; python_version < '3.9'
