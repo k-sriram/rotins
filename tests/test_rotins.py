@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from importlib import metadata
 from pathlib import Path
 from typing import cast
 
@@ -348,3 +349,15 @@ def test_rotins_functional_parameters():
 
     # Results should be proportional
     assert np.allclose(1 - raw_flux_broad / 1000, norm_flux)
+
+
+def test_version():
+    """Test that package version is consistent."""
+    from importlib.metadata import version
+    from rotins import __version__
+
+    package_version = version("rotins")
+    assert package_version == __version__, (
+        f"Version mismatch: importlib.metadata reports {package_version}, "
+        f"but __version__ is {__version__}"
+    )
