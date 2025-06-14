@@ -113,7 +113,7 @@ from scipy.interpolate import interp1d
 
 # dunders
 
-__version__ = "1.0.0rc1"
+__version__ = "1.0.0"
 __all__ = ["convolve", "Kernel", "RotKernel", "InsKernel", "Broadening", "RotIns"]
 
 # Constants
