@@ -32,8 +32,10 @@ requires-python = ">=3.8"
 dependencies = ["numpy>=1.17.0", "scipy>=1.5.0"]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/rotins"
-Issues = "https://github.com/yourusername/rotins/issues"
+Homepage = "https://github.com/k-sriram/rotins"
+Documentation = "https://github.com/k-sriram/rotins#readme"
+Issues = "https://github.com/k-sriram/rotins/issues"
+Source = "https://github.com/k-sriram/rotins"
 
 [tool.pytest.ini_options]
 minversion = "6.2.5"
