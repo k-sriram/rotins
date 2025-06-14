@@ -272,6 +272,24 @@ def test_rotins(outfile, fwhm, vsini, makeplots, testcase):
     assert stdev < 1e-4
 
 
+def test_rotins_no_params():
+    """Test that RotIns can be instantiated without parameters"""
+    # Should not raise an error
+    core.RotIns()
+
+    # Check default parameters
+    broadener = core.RotIns()
+    assert broadener.base_flux == 1.0
+    assert broadener.kernels == []
+
+    # If we try to broaden without parameters, it should return the input unchanged
+    wl = np.linspace(4000, 4100, 1000)
+    flux = 1 - np.exp(-((wl - 4050) ** 2) / 2)
+    broad_wl, broad_flux = broadener.broaden(wl, flux)
+    assert np.array_equal(broad_wl, wl)
+    assert np.array_equal(broad_flux, flux)
+
+
 def test_rotins_functional():
     """Test that the functional interface is identical to the class interface"""
     wl = np.linspace(4000, 4100, 1000)
